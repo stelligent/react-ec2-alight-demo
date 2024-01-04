@@ -10,13 +10,17 @@ function App() {
   useEffect(() => {
     async function fetchRegion() {
       try {
-        const response = await axios.get('http://localhost:3001/api/region');
+        const protocol = window.location.protocol;
+        const hostname = window.location.hostname;
+        const baseUrl = `${protocol}//${hostname}:3001`; // Constructs the base URL with port 3001
+  
+        const response = await axios.get(`${baseUrl}/api/region`);
         setRegion(response.data);
       } catch (error) {
         console.error('Error fetching region', error);
       }
     }
-
+  
     fetchRegion();
   });
 

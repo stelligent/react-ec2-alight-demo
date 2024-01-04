@@ -10,7 +10,7 @@ app.use(cors());
 app.get('/api/region', async (req, res) => {
   try {
     const response = await fetchRegion();
-    res.send(response.data);
+    res.send(response);
   } catch (error) {
     // Check if the error is due to a network issue or unavailable metadata
     if (error.response === undefined || error.response.status === 404) {
@@ -40,13 +40,12 @@ async function fetchRegion() {
     });
 
     const region = azResponse.data.slice(0, -1);
-    console.log(region);
+    return region;
   } catch (error) {
     console.error('Error fetching metadata', error);
+    throw error;
   }
 }
-
-fetchRegion();
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);

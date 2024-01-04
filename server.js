@@ -7,6 +7,12 @@ const port = 3001;
 // Use CORS middleware (allows requests from all origins)
 app.use(cors());
 
+// Health check route
+app.get('/', (req, res) => {
+    res.status(200).send('Express app is running!');
+  });
+
+  
 app.get('/api/region', async (req, res) => {
   try {
     const response = await fetchRegion();

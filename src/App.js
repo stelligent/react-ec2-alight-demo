@@ -10,7 +10,7 @@ function App() {
   useEffect(() => {
     async function fetchRegion() {
       try {
-        const response = await axios.get('/api/region');
+        const response = await axios.get('http://localhost:3001/api/region');
         setRegion(response.data);
       } catch (error) {
         console.error('Error fetching region', error);
@@ -18,7 +18,7 @@ function App() {
     }
 
     fetchRegion();
-  }, []);
+  });
 
   return (
     <div className="App">

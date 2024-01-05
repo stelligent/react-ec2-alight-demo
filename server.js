@@ -49,7 +49,12 @@ function connectToDatabase(host) {
 }
 
 // Initial connection
-connectToDatabase('terraform-20240103231930802400000001.cvvc7ctpc6j4.us-east-1.rds.amazonaws.com');
+connectToDatabase(
+    'terraform-20240103231930802400000001.cvvc7ctpc6j4.us-east-1.rds.amazonaws.com',
+).catch((err) => {
+    console.error('Failed to connect to the database on startup:', err);
+    // Handle the startup connection error (e.g., retry, exit process, etc.)
+});
 
 // Endpoint to change host and reconnect
 app.post('/change-host', async (req, res) => {
@@ -76,7 +81,7 @@ app.get('/connection-details', (req, res) => {
 
 // List RDS in Region
 app.get('/list-rds-instances', async (req, res) => {
-    const region = req.query.region || 'us-east-1'; // Default to 'us-east-1' if not specified
+    const region = req.query.region;
 
     AWS.config.update({ region }); // Update AWS config with the specified region
 

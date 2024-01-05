@@ -10,14 +10,27 @@ import {
     Button,
     Grid,
     TextField,
+    Typography,
 } from '@mui/material';
 import axios from 'axios';
 
 import { config } from './config';
 
-function UsersList() {
+function UsersList({ isConnecting }) {
     const [users, setUsers] = useState([]);
     const [userData, setUserData] = useState({ username: '', email: '' });
+    const [error, setError] = useState('');
+
+    // useEffect hook to refetch users when isConnecting changes
+    useEffect(() => {
+        if (!isConnecting) {
+            // Optionally, fetch only when not connecting
+            fetchUsers();
+        } else {
+            setError('');
+            setUsers([]);
+        }
+    }, [isConnecting]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -28,15 +41,6 @@ function UsersList() {
         handleAddUser(userData);
         setUserData({ username: '', email: '' }); // Clear the form
     };
-
-    useEffect(() => {
-        // Replace with your API call to fetch users
-        fetchUsers();
-    }, []);
-
-    useEffect(() => {
-        fetchUsers();
-    }, []);
 
     const fetchUsers = async () => {
         try {
@@ -67,13 +71,15 @@ function UsersList() {
         }
     };
 
-    const handleAddUser = async (newUserData) => {
+    const handleAddUser = async () => {
         try {
-            await axios.post(`${config.baseUrl}/users`, newUserData);
+            await axios.post(`${config.baseUrl}/users`, userData);
             console.log('User added');
             fetchUsers(); // Refresh the list after adding a new user
+            setUserData({ username: '', email: '' }); // Clear the form
+            setError(''); // Clear any existing error
         } catch (error) {
-            console.error('Error adding user:', error);
+            setError(`${error.message} ${error.response.data}` || 'Failed to add user');
         }
     };
 
@@ -102,6 +108,9 @@ function UsersList() {
                     <Button variant='contained' color='primary' onClick={handleSubmit}>
                         Add User
                     </Button>
+                </Grid>
+                <Grid item sx={{ marginTop: '20px' }}>
+                    {error && <Typography color='error'>{error}</Typography>}
                 </Grid>
             </Grid>
             <Grid item xs={6}>

@@ -4,7 +4,7 @@ import { CircularProgress, Box, Typography } from '@mui/material';
 
 import { config } from './config';
 
-function ConnectionStatus() {
+function ConnectionStatus({ isConnecting }) {
     const [connectionDetails, setConnectionDetails] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -21,16 +21,16 @@ function ConnectionStatus() {
         };
 
         fetchConnectionDetails();
-    }, []);
+    }, [isConnecting]);
 
     return (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, marginTop: '20px' }}>
             {loading ? (
                 <CircularProgress />
             ) : (
                 <>
                     <Typography variant='body1'>
-                        Host: {connectionDetails?.host || 'N/A'}
+                        <b>Host:</b> {connectionDetails?.host || 'N/A'}
                     </Typography>
                     <Box
                         sx={{
@@ -38,7 +38,7 @@ function ConnectionStatus() {
                             height: 15,
                             borderRadius: '50%',
                             backgroundColor:
-                                connectionDetails?.status === 'connected' ? 'green' : 'red',
+                                connectionDetails?.status === 'Connected' ? 'green' : 'red',
                         }}
                     />
                     <Typography variant='body1'>

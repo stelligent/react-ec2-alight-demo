@@ -28,19 +28,23 @@ function createConnection(host) {
 }
 
 function connectToDatabase(host) {
-    if (currentConnection) {
-        currentConnection.end();
-    }
-
-    currentConnection = createConnection(host);
-    currentConnection.connect((err) => {
-        if (err) {
-            console.error('Error connecting to the database:', err);
-            isConnected = false;
-        } else {
-            console.log('Successfully connected to the database.');
-            isConnected = true;
+    return new Promise((resolve, reject) => {
+        if (currentConnection) {
+            currentConnection.end();
         }
+
+        currentConnection = createConnection(host);
+        currentConnection.connect((err) => {
+            if (err) {
+                console.error('Error connecting to the database:', err);
+                isConnected = false;
+                reject(err);
+            } else {
+                console.log('Successfully connected to the database.');
+                isConnected = true;
+                resolve();
+            }
+        });
     });
 }
 
@@ -48,15 +52,16 @@ function connectToDatabase(host) {
 connectToDatabase('terraform-20240103231930802400000001.cvvc7ctpc6j4.us-east-1.rds.amazonaws.com');
 
 // Endpoint to change host and reconnect
-app.post('/change-host', (req, res) => {
+app.post('/change-host', async (req, res) => {
+    isConnected = false;
     const newHost = req.body.host;
     if (!newHost) {
         return res.status(400).send('Host is required');
     }
 
     try {
-        connectToDatabase(newHost);
-        res.send(`Reconnected to new host: ${newHost}`);
+        await connectToDatabase(newHost);
+        res.send(`Successfully reconnected to new host: ${newHost}`);
     } catch (error) {
         res.status(500).send(`Error reconnecting: ${error.message}`);
     }
@@ -88,43 +93,91 @@ app.get('/list-rds-instances', async (req, res) => {
 
 // MYSQL API endpoints
 // Create (POST) - Add a new user
-app.post('/users', (req, res) => {
+app.post('/users', async (req, res) => {
     let user = req.body;
     let sql = 'INSERT INTO users SET ?';
-    currentConnection.query(sql, user, (err, result) => {
-        if (err) throw err;
+
+    try {
+        await new Promise((resolve, reject) => {
+            currentConnection.query(sql, user, (err, result) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            });
+        });
         res.send('User added successfully!');
-    });
+    } catch (err) {
+        console.error('Error adding user:', err);
+        res.status(500).send('Error adding user');
+    }
 });
 
 // Read (GET) - Get all users
-app.get('/users', (req, res) => {
+app.get('/users', async (req, res) => {
     let sql = 'SELECT * FROM users';
-    currentConnection.query(sql, (err, results) => {
-        if (err) throw err;
+
+    try {
+        const results = await new Promise((resolve, reject) => {
+            currentConnection.query(sql, (err, results) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(results);
+                }
+            });
+        });
         res.send(results);
-    });
+    } catch (err) {
+        console.error('Error fetching users:', err);
+        res.status(500).send('Error fetching users');
+    }
 });
 
 // Update (PUT) - Update a user
-app.put('/users/:id', (req, res) => {
+app.put('/users/:id', async (req, res) => {
     let userId = req.params.id;
     let user = req.body;
     let sql = `UPDATE users SET ? WHERE id = ${userId}`;
-    currentConnection.query(sql, user, (err, result) => {
-        if (err) throw err;
+
+    try {
+        await new Promise((resolve, reject) => {
+            currentConnection.query(sql, user, (err, result) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            });
+        });
         res.send('User updated successfully!');
-    });
+    } catch (err) {
+        console.error('Error updating user:', err);
+        res.status(500).send('Error updating user');
+    }
 });
 
 // Delete (DELETE) - Delete a user
-app.delete('/users/:id', (req, res) => {
+app.delete('/users/:id', async (req, res) => {
     let userId = req.params.id;
     let sql = `DELETE FROM users WHERE id = ${userId}`;
-    currentConnection.query(sql, (err, result) => {
-        if (err) throw err;
+
+    try {
+        await new Promise((resolve, reject) => {
+            currentConnection.query(sql, (err, result) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            });
+        });
         res.send('User deleted successfully!');
-    });
+    } catch (err) {
+        console.error('Error deleting user:', err);
+        res.status(500).send('Error deleting user');
+    }
 });
 
 // Health check route

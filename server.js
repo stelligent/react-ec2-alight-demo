@@ -29,8 +29,13 @@ function createConnection(host) {
 
 function connectToDatabase(host) {
     return new Promise((resolve, reject) => {
+        // Safely end the previous connection if it exists
         if (currentConnection) {
-            currentConnection.end();
+            currentConnection.end((err) => {
+                if (err) {
+                    console.error('Error closing previous database connection:', err);
+                }
+            });
         }
 
         currentConnection = createConnection(host);
@@ -48,7 +53,6 @@ function connectToDatabase(host) {
     });
 }
 
-// Endpoint to change host and reconnect
 app.post('/change-host', async (req, res) => {
     isConnected = false;
     const newHost = req.body.host;
@@ -60,6 +64,7 @@ app.post('/change-host', async (req, res) => {
         await connectToDatabase(newHost);
         res.send(`Successfully reconnected to new host: ${newHost}`);
     } catch (error) {
+        console.error(`Error reconnecting to new host ${newHost}:`, error);
         res.status(500).send(`Error reconnecting: ${error.message}`);
     }
 });
@@ -167,6 +172,40 @@ app.delete('/users/:id', async (req, res) => {
         res.status(500).send('Error deleting user');
     }
 });
+
+// Endpoint to create the users table
+app.get('/create-users-table', async (req, res) => {
+    try {
+        await createDatabaseTable();
+        res.send('Users table created or already exists');
+    } catch (err) {
+        console.error('Error creating users table:', err);
+        res.status(500).send('Error creating users table');
+    }
+});
+
+function createDatabaseTable() {
+    const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS users (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(50) NOT NULL,
+            email VARCHAR(50),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `;
+
+    return new Promise((resolve, reject) => {
+        currentConnection.query(createTableQuery, (error, results, fields) => {
+            if (error) {
+                console.error('Error creating table:', error);
+                reject(error);
+            } else {
+                console.log('Table created or already exists');
+                resolve();
+            }
+        });
+    });
+}
 
 // Health check route
 app.get('/', (req, res) => {

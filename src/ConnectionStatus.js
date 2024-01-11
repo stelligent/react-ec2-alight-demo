@@ -19,18 +19,8 @@ function ConnectionStatus({ isConnecting }) {
                 setLoading(false);
             }
         };
-        const createTable = async () => {
-            try {
-                const response = await axios.get(`${config.baseUrl}/create-users-table`);
-                console.log(response.data);
-                alert('Response: ' + response.data); // Display response in an alert or handle as needed
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        };
 
         fetchConnectionDetails();
-        createTable();
     }, [isConnecting]);
 
     return (

@@ -1,20 +1,16 @@
 const express = require('express');
 const axios = require('axios');
-const cors = require('cors'); // Import CORS module
+const cors = require('cors');
 const bodyParser = require('body-parser');
-
 const mysql = require('mysql');
 const AWS = require('aws-sdk');
 
 const app = express();
 const port = 3001;
 
-// Use CORS middleware (allows requests from all origins)
 app.use(cors());
-
 app.use(bodyParser.json());
 
-// Data base connnections
 let currentConnection;
 let isConnected = false;
 
@@ -29,7 +25,6 @@ function createConnection(host) {
 
 function connectToDatabase(host) {
     return new Promise((resolve, reject) => {
-        // Safely end the previous connection if it exists
         if (currentConnection) {
             currentConnection.end((err) => {
                 if (err) {
@@ -71,17 +66,14 @@ app.post('/change-host', async (req, res) => {
 
 app.get('/connection-details', (req, res) => {
     res.json({
-        host: currentConnection.config.host,
+        host: currentConnection ? currentConnection.config.host : 'Not connected',
         status: isConnected ? 'Connected' : 'Not connected',
     });
 });
 
-// List RDS in Region
 app.get('/list-rds-instances', async (req, res) => {
     const region = req.query.region;
-
-    AWS.config.update({ region }); // Update AWS config with the specified region
-
+    AWS.config.update({ region });
     const rds = new AWS.RDS();
 
     try {
@@ -94,21 +86,17 @@ app.get('/list-rds-instances', async (req, res) => {
 });
 
 // MYSQL API endpoints
-// Utility function to ensure database connection
 async function executeQuery(sql, params = []) {
-    if (!isConnected) {
-        console.error('Database not connected');
-        throw new Error('Database not connected');
+    if (!currentConnection || !isConnected) {
+            console.error('Database reconnection failed:', reconnectError);
+            throw new Error(
     }
 
     return new Promise((resolve, reject) => {
         currentConnection.query(sql, params, (err, result) => {
             if (err) {
                 console.error('Database query error:', err);
-                // Check if the error is due to a lost connection
-                if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ECONNREFUSED') {
-                    isConnected = false;
-                }
+                isConnected = false;
                 reject(err);
             } else {
                 resolve(result);
@@ -116,11 +104,9 @@ async function executeQuery(sql, params = []) {
         });
     });
 }
-
-// Create (POST) - Add a new user
 app.post('/users', async (req, res) => {
-    let user = req.body;
-    let sql = 'INSERT INTO users SET ?';
+    const user = req.body;
+    const sql = 'INSERT INTO users SET ?';
 
     try {
         await executeQuery(sql, user);
@@ -131,24 +117,22 @@ app.post('/users', async (req, res) => {
     }
 });
 
-// Read (GET) - Get all users
 app.get('/users', async (req, res) => {
-    let sql = 'SELECT * FROM users';
+    const sql = 'SELECT * FROM users';
 
     try {
         const results = await executeQuery(sql);
-        res.send(results);
+        res.json(results);
     } catch (err) {
         console.error('Error fetching users:', err);
         res.status(500).send('Error fetching users');
     }
 });
 
-// Update (PUT) - Update a user
 app.put('/users/:id', async (req, res) => {
-    let userId = req.params.id;
-    let user = req.body;
-    let sql = 'UPDATE users SET ? WHERE id = ?';
+    const userId = req.params.id;
+    const user = req.body;
+    const sql = 'UPDATE users SET ? WHERE id = ?';
 
     try {
         await executeQuery(sql, [user, userId]);
@@ -159,10 +143,9 @@ app.put('/users/:id', async (req, res) => {
     }
 });
 
-// Delete (DELETE) - Delete a user
 app.delete('/users/:id', async (req, res) => {
-    let userId = req.params.id;
-    let sql = 'DELETE FROM users WHERE id = ?';
+    const userId = req.params.id;
+    const sql = 'DELETE FROM users WHERE id = ?';
 
     try {
         await executeQuery(sql, [userId]);
@@ -173,7 +156,6 @@ app.delete('/users/:id', async (req, res) => {
     }
 });
 
-// Endpoint to create the users table
 app.get('/create-users-table', async (req, res) => {
     try {
         await createDatabaseTable();
@@ -207,7 +189,6 @@ function createDatabaseTable() {
     });
 }
 
-// Health check route
 app.get('/', (req, res) => {
     res.status(200).send('Express app is running!');
 });
@@ -217,7 +198,6 @@ app.get('/api/region', async (req, res) => {
         const response = await fetchRegion();
         res.send(response);
     } catch (error) {
-        // Check if the error is due to a network issue or unavailable metadata
         if (error.response === undefined || error.response.status === 404) {
             res.status(200).send('Running locally');
         } else {
@@ -228,7 +208,6 @@ app.get('/api/region', async (req, res) => {
 
 async function fetchRegion() {
     try {
-        // Request a token
         const tokenResponse = await axios.put('http://169.254.169.254/latest/api/token', null, {
             headers: {
                 'X-aws-ec2-metadata-token-ttl-seconds': '21600',
@@ -237,7 +216,6 @@ async function fetchRegion() {
 
         const token = tokenResponse.data;
 
-        // Use the token to request the availability zone
         const azResponse = await axios.get(
             'http://169.254.169.254/latest/meta-data/placement/availability-zone',
             {

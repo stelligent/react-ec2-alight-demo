@@ -49,12 +49,23 @@ function App() {
             }
         };
 
-        fetchRDSInstances();
+        if (region !== '') {
+            fetchRDSInstances();
+        }
     }, [region]); // This effect runs whenever 'region' changes
 
     const handleInstanceChange = async (event) => {
         const newHost = event.target.value;
         setSelectedInstance(newHost);
+    };
+
+    const createTable = async () => {
+        try {
+            const response = await axios.get(`${config.baseUrl}/create-users-table`);
+            console.log(response.data);
+        } catch (error) {
+            console.error('Error:', error);
+        }
     };
 
     const handleConnectClick = async () => {
@@ -66,6 +77,7 @@ function App() {
         setIsConnecting(true);
         try {
             await axios.post(`${config.baseUrl}/change-host`, { host: selectedInstance });
+            await createTable();
             console.log('Host changed to:', selectedInstance);
         } catch (error) {
             console.error('Error changing host:', error);
